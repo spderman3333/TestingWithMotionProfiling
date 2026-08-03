@@ -11,9 +11,7 @@ import edu.wpi.first.networktables.DoublePublisher;
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.units.Units;
-import edu.wpi.first.units.measure.Angle;
-import edu.wpi.first.units.measure.LinearAcceleration;
-import edu.wpi.first.units.measure.LinearVelocity;
+import edu.wpi.first.units.measure.*;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 
@@ -31,8 +29,8 @@ public class Elevator extends SubsystemBase {
 
     private TrapezoidProfile motionProfile = new TrapezoidProfile(
         new TrapezoidProfile.Constraints(
-            ElevatorConstants.MAX_ELEVATOR_VELOCITY.in(Units.MetersPerSecond),
-            ElevatorConstants.MAX_ELEVATOR_ACCELERATION.in(Units.MetersPerSecondPerSecond)
+            ElevatorConstants.MAX_ELEVATOR_VELOCITY.in(Units.RotationsPerSecond),
+            ElevatorConstants.MAX_ELEVATOR_ACCELERATION.in(Units.RotationsPerSecondPerSecond)
         ));
 
     // Keep track of the network table where data from the elevator will be logged.
@@ -61,17 +59,21 @@ public class Elevator extends SubsystemBase {
 
     }
 
+    // TODO: Make this command run the motion profiling.
+    //  See https://docs.wpilib.org/en/stable/docs/software/commandbased/profile-subsystems-commands.html#motion-profiling-in-command-based
+    private void updateMotionProfilingState() {
+    }
+
     /**
-     * Nested class to allow for quick configuration of the constants in the
-     * 
+     * Nested class to allow for quick configuration of the constants in the Elevator code.
      */
     public static class ElevatorConstants {
         public static final int TOP_MOTOR_CAN_ID = 16;
         public static final int BOTTOM_MOTOR_CAN_ID = 17;
 
         // Constants for the Configuration of the Trapezoidal Profile.
-        public static final LinearVelocity MAX_ELEVATOR_VELOCITY = Units.MetersPerSecond.of(0.3);
-        public static final LinearAcceleration MAX_ELEVATOR_ACCELERATION = Units.MetersPerSecondPerSecond.of(0.2);
+        public static final AngularVelocity MAX_ELEVATOR_VELOCITY = Units.RotationsPerSecond.of(5);
+        public static final AngularAcceleration MAX_ELEVATOR_ACCELERATION = Units.RotationsPerSecondPerSecond.of(2);
 
     }
 
@@ -88,6 +90,10 @@ public class Elevator extends SubsystemBase {
 
         ElevatorMotorPositions(Angle position) {
             angleOfMotor = position;
+        }
+
+        public Angle getAngleOfMotor() {
+            return angleOfMotor;
         }
     }
 }
