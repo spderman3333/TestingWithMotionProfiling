@@ -1,6 +1,7 @@
 package frc.robot.subsystem;
 
 import com.ctre.phoenix6.configs.MotorOutputConfigs;
+import com.ctre.phoenix6.configs.Slot0Configs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.Follower;
 import com.ctre.phoenix6.controls.PositionVoltage;
@@ -21,12 +22,6 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 
 public class Elevator extends SubsystemBase {
-
-    private final TalonFXConfiguration motorConfig = new TalonFXConfiguration()
-        .withMotorOutput(
-            new MotorOutputConfigs()
-                .withInverted(InvertedValue.Clockwise_Positive)
-                .withNeutralMode(NeutralModeValue.Brake));
 
     private final TalonFX topMotor = new TalonFX(ElevatorConstants.TOP_MOTOR_CAN_ID);
     private final TalonFX bottomMotor = new TalonFX(ElevatorConstants.BOTTOM_MOTOR_CAN_ID);
@@ -57,8 +52,8 @@ public class Elevator extends SubsystemBase {
         topMotorRotationPublisher = elevatorLoggingNT.getDoubleTopic("Top Motor Rotations (rots)").publish();
         bottomMotorRotationPublisher = elevatorLoggingNT.getDoubleTopic("Bottom Motor Rotations (rots)").publish();
 
-        topMotor.getConfigurator().apply(motorConfig);
-        bottomMotor.getConfigurator().apply(motorConfig);
+        topMotor.getConfigurator().apply(ElevatorConstants.MOTOR_CONFIG);
+        bottomMotor.getConfigurator().apply(ElevatorConstants.MOTOR_CONFIG);
 
         // No need to specifically instruct the bottom motor.
         bottomMotor.setControl(new Follower(ElevatorConstants.TOP_MOTOR_CAN_ID, MotorAlignmentValue.Aligned));
@@ -113,6 +108,24 @@ public class Elevator extends SubsystemBase {
     public static class ElevatorConstants {
         public static final int TOP_MOTOR_CAN_ID = 16;
         public static final int BOTTOM_MOTOR_CAN_ID = 17;
+
+
+        public static final TalonFXConfiguration MOTOR_CONFIG = new TalonFXConfiguration()
+            .withMotorOutput(
+                new MotorOutputConfigs()
+                    .withInverted(InvertedValue.Clockwise_Positive)
+                    .withNeutralMode(NeutralModeValue.Brake))
+            .withSlot0(new Slot0Configs()
+                .withKP(0)
+                .withKI(0)
+                .withKD(0)
+                .withKS(0)
+                .withKV(0)
+                .withKA(0)
+                .withKG(0));
+
+
+
 
         // Constants for the Configuration of the Trapezoidal Profile.
         public static final AngularVelocity MAX_ELEVATOR_VELOCITY = Units.RotationsPerSecond.of(5);
