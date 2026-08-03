@@ -125,8 +125,6 @@ public class Elevator extends SubsystemBase {
                 .withKG(0));
 
 
-
-
         // Constants for the Configuration of the Trapezoidal Profile.
         public static final AngularVelocity MAX_ELEVATOR_VELOCITY = Units.RotationsPerSecond.of(5);
         public static final AngularAcceleration MAX_ELEVATOR_ACCELERATION = Units.RotationsPerSecondPerSecond.of(2);
