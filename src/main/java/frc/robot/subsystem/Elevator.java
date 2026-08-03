@@ -20,13 +20,16 @@ import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
-
+/**
+ * Class for testing motion profiling on Maelstrom.
+ */
 public class Elevator extends SubsystemBase {
+    // TODO: Add simulation here.
 
     private final TalonFX topMotor = new TalonFX(ElevatorConstants.TOP_MOTOR_CAN_ID);
     private final TalonFX bottomMotor = new TalonFX(ElevatorConstants.BOTTOM_MOTOR_CAN_ID);
 
-    // Cache the control request so we dont have to keep making a new object everytime.
+    // Cache the control request so we don't have to keep making a new object everytime.
     private final PositionVoltage motorControlScheme;
 
     private ElevatorMotorPosition currentPositionSetpoint;

@@ -7,20 +7,29 @@ package frc.robot;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
+import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import frc.robot.subsystem.Elevator;
 
 public class RobotContainer {
 
   private final Elevator elevator;
 
+  private final CommandXboxController mainController;
+
   public RobotContainer() {
 
     elevator = new Elevator(NetworkTableInstance.getDefault());
 
+    mainController = new CommandXboxController(0);
+
     configureBindings();
   }
 
-  private void configureBindings() {}
+  private void configureBindings() {
+    mainController.povUp().onTrue(elevator.setMotorPosition(Elevator.ElevatorMotorPosition.TOP));
+    mainController.povDown().onTrue(elevator.setMotorPosition(Elevator.ElevatorMotorPosition.BASE));
+
+  }
 
   public Command getAutonomousCommand() {
     return Commands.print("No autonomous command configured");
