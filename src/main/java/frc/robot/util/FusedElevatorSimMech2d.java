@@ -62,9 +62,9 @@ public class FusedElevatorSimMech2d {
 
         // Todo: add a method to resize elevatorMechanism and change its background color.
         // Note: Width and height are in meters.
-        elevatorMechanism = new Mechanism2d(maxElevatorHeight.in(Meters)*1.5, maxElevatorHeight.in(Meters)*1.75, new Color8Bit(Color.kSkyBlue));
+        elevatorMechanism = new Mechanism2d(maxElevatorHeight.in(Meters)*1.5, maxElevatorHeight.in(Meters)*1.75, new Color8Bit(Color.kBlue));
         elevatorMechanismRoot = elevatorMechanism.getRoot(subsystemNetworkTableName + " Root", maxElevatorHeight.in(Meters)*0.75,maxElevatorHeight.in(Meters)*0.5);
-        elevatorMechanismLigament = elevatorMechanismRoot.append(new MechanismLigament2d(subsystemNetworkTableName + " Ligament", 0, 90, 3, new Color8Bit(Color.kOrange)));
+        elevatorMechanismLigament = elevatorMechanismRoot.append(new MechanismLigament2d(subsystemNetworkTableName + " Ligament", 0, 90, 5, new Color8Bit(Color.kOrange)));
         // Todo: do the rest of the set up here.
 
         // Display the elevator mechanism to SmartDashboard

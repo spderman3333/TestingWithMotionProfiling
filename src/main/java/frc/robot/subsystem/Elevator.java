@@ -10,6 +10,7 @@ import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
+import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.networktables.DoublePublisher;
 import edu.wpi.first.networktables.NetworkTable;
@@ -17,8 +18,13 @@ import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.units.Units;
 import edu.wpi.first.units.measure.*;
 import edu.wpi.first.wpilibj.Timer;
+import edu.wpi.first.wpilibj.simulation.ElevatorSim;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import frc.robot.Robot;
+import frc.robot.util.FusedElevatorSimMech2d;
+
+import static edu.wpi.first.units.Units.Meters;
 
 /**
  * Class for testing motion profiling on Maelstrom.
@@ -49,6 +55,8 @@ public class Elevator extends SubsystemBase {
     private DoublePublisher topMotorRotationPublisher; // In Rotations
     private DoublePublisher bottomMotorRotationPublisher; // In Rotations
 
+    private ElevatorSim elevatorSim;
+    private FusedElevatorSimMech2d fusedElevatorSimMech2d;
 
     public Elevator(NetworkTableInstance ntInstance) {
         elevatorLoggingNT = ntInstance.getTable("Subsystems/Elevator");
@@ -64,6 +72,37 @@ public class Elevator extends SubsystemBase {
         currentPositionSetpoint=ElevatorMotorPosition.BASE;
 
         motorControlScheme = new PositionVoltage(currentPositionSetpoint.getAngleOfMotor());
+
+        if (Robot.isSimulation()) {
+            /*
+             * In the CAD, a 12t gear turns a 70t gear.
+             * The 70t gear is attached to a 22t gear with a pitch diameter of
+             */
+            elevatorSim = new ElevatorSim(
+                DCMotor.getKrakenX60(2),
+                // Motors are attached to a 12t gear which turns a 70t gear (which is attached to a 22t gear), simplfied to 6/35
+                6.0/35.0, // Reminder 6/35 = 0, because of integer division truncation, use doubles.
+                Units.Pounds.of(13.92).in(Units.Kilograms),
+                // Calculated the Pitch diameter of WCP-0560
+                Units.Inches.of(1.75667).in(Meters),
+                0,
+                Units.Inches.of(15.75).in(Meters),
+                true,
+                0);
+
+            fusedElevatorSimMech2d = new FusedElevatorSimMech2d(
+                elevatorSim,
+                elevatorLoggingNT,
+                6/35,
+                Units.Inches.of(1.75667),
+                Units.Inches.of(15.75),
+                topMotor, bottomMotor);
+        }
+    }
+
+    @Override
+    public void simulationPeriodic() {
+        fusedElevatorSimMech2d.runPeriodic();
     }
 
 
@@ -71,8 +110,6 @@ public class Elevator extends SubsystemBase {
     public void periodic() {
         topMotorRotationPublisher.accept(topMotor.getPosition().getValue().in(Units.Rotations));
         bottomMotorRotationPublisher.accept(bottomMotor.getPosition().getValue().in(Units.Rotations));
-
-
 
     }
 
