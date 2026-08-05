@@ -7,20 +7,20 @@ package frc.robot;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
-import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
+import edu.wpi.first.wpilibj2.command.button.CommandPS4Controller;
 import frc.robot.subsystem.Elevator;
 
 public class RobotContainer {
 
   private final Elevator elevator;
 
-  private final CommandXboxController mainController;
+  private final CommandPS4Controller mainController;
 
   public RobotContainer() {
 
     elevator = new Elevator(NetworkTableInstance.getDefault());
 
-    mainController = new CommandXboxController(0);
+    mainController = new CommandPS4Controller(0);
 
     configureBindings();
   }

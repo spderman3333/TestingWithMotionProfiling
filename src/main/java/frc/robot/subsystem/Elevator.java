@@ -24,6 +24,8 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Robot;
 import frc.robot.util.FusedElevatorSimMech2d;
 
+import java.util.concurrent.atomic.AtomicReference;
+
 import static edu.wpi.first.units.Units.Meters;
 
 /**
@@ -83,8 +85,8 @@ public class Elevator extends SubsystemBase {
                 // Motors are attached to a 12t gear which turns a 70t gear (which is attached to a 22t gear), simplfied to 6/35
                 6.0/35.0, // Reminder 6/35 = 0, because of integer division truncation, use doubles.
                 Units.Pounds.of(13.92).in(Units.Kilograms),
-                // Calculated the Pitch diameter of WCP-0560
-                Units.Inches.of(1.75667).in(Meters),
+                // Calculated the Pitch diameter of WCP-0560 divide by 2 for radius
+                Units.Inches.of(1.75667).in(Meters)/2.0,
                 0,
                 Units.Inches.of(15.75).in(Meters),
                 true,
@@ -93,7 +95,7 @@ public class Elevator extends SubsystemBase {
             fusedElevatorSimMech2d = new FusedElevatorSimMech2d(
                 elevatorSim,
                 elevatorLoggingNT,
-                6/35,
+                6.0/35.0,
                 Units.Inches.of(1.75667),
                 Units.Inches.of(15.75),
                 topMotor, bottomMotor);
@@ -139,7 +141,7 @@ public class Elevator extends SubsystemBase {
                 // Default unit for .withPosition() and .withVelocity() is rotations.
                 topMotor.setControl(motorControlScheme.withPosition(calculatedPosRots.position).withVelocity(calculatedPosRots.velocity));
             }
-        );
+        ).until(() -> motionProfile.isFinished(motionProfilingTimer.get()));
     }
 
     /**
@@ -156,11 +158,11 @@ public class Elevator extends SubsystemBase {
                     .withInverted(InvertedValue.Clockwise_Positive)
                     .withNeutralMode(NeutralModeValue.Brake))
             .withSlot0(new Slot0Configs()
-                .withKP(0)
+                .withKP(10)
                 .withKI(0)
                 .withKD(0)
                 .withKS(0)
-                .withKV(0)
+                .withKV(1)
                 .withKA(0)
                 .withKG(0));
 

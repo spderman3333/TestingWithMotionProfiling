@@ -102,7 +102,7 @@ public class FusedElevatorSimMech2d {
      * @return The value converted for the motor in the gearbox.
      */
     private double convertElevatorLinearToMotorAngular(double elevatorLinearValueMeters) {
-        return (elevatorLinearValueMeters/2*Math.PI*drumRadius.in(Meters))*motorToSystemGearing;
+        return (elevatorLinearValueMeters/(2*Math.PI*drumRadius.in(Meters)))*motorToSystemGearing;
     }
 
     /**
