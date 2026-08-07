@@ -5,27 +5,11 @@ package frc.robot.util;
  */
 public class GearRatio {
 
-    /**
-     * Number of teeth on the driving (input) gear.
-     */
-    public final int numberOfDrivingTeeth;
+    private final int numberOfDrivingTeeth;
+    private final int numberOfDrivenTeeth;
+    private final double gearRatio;
 
-    /**
-     * Number of teeth on the driven (output) gear.
-     */
-    public final int numberOfDrivenTeeth;
-
-    /**
-     * The gear ratio from the ensuing two gears, in the ratio of "driven:driving."
-     * This is also known as the "reduction" between the two gears.
-     * This field will work for WPILib's <a href=https://github.wpilib.org/allwpilib/docs/release/java/edu/wpi/first/wpilibj/simulation/LinearSystemSim.html>LinearSystemSim</a> classes.
-     */
-    public final double gearRatio;
-
-    /**
-     * The type of gear ratio this object is.
-     */
-    public final GearRatioType gearRatioType;
+    private final GearRatioType gearRatioType;
 
     /**
      * Constructs a gear ratio from the given input.
@@ -50,18 +34,33 @@ public class GearRatio {
         }
     }
 
+    /**
+     * The gear ratio from the ensuing two gears, in the ratio of "driven:driving."
+     * This is also known as the "reduction" between the two gears.
+     * This field will work for WPILib's <a href=https://github.wpilib.org/allwpilib/docs/release/java/edu/wpi/first/wpilibj/simulation/LinearSystemSim.html>LinearSystemSim</a> classes.
+     */
     public double getGearRatio() {
         return gearRatio;
     }
 
+    /**
+     * Number of teeth on the driven (output) gear.
+     */
     public int getNumberOfDrivenTeeth() {
         return numberOfDrivenTeeth;
     }
 
+    /**
+     * Number of teeth on the driving (input) gear.
+     */
     public int getNumberOfDrivingTeeth() {
         return numberOfDrivingTeeth;
     }
 
+    /**
+     * The type of gear ratio this object is.
+     * @see GearRatioType
+     */
     public GearRatioType getGearRatioType() {
         return gearRatioType;
     }
