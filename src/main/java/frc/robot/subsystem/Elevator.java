@@ -127,7 +127,7 @@ public class Elevator extends SubsystemBase {
      * @return The value converted for the motor in the gearbox.
      */
     private double convertElevatorLinearToMotorAngular(double elevatorLinearValueMeters) {
-        return (elevatorLinearValueMeters/(2*Math.PI*ElevatorConstants.PULLY_RADIUS.in(Meters)))*ElevatorConstants.MOTOR_TO_ELEVATOR_GEARING;
+        return (elevatorLinearValueMeters/(2*Math.PI*ElevatorConstants.PULLY_RADIUS.in(Meters)))*ElevatorConstants.MOTOR_TO_ELEVATOR_GEARING.getGearRatio();
     }
 
     /**

@@ -9,6 +9,7 @@ import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.units.Units;
 import edu.wpi.first.units.measure.*;
 import edu.wpi.first.wpilibj.simulation.ElevatorSim;
+import frc.robot.util.GearRatio;
 
 import static edu.wpi.first.units.Units.Meters;
 
@@ -47,7 +48,7 @@ public class ElevatorConstants {
     public static ElevatorSim constructElevatorSim() {
         return new ElevatorSim(
             DCMotor.getKrakenX60(2),
-            MOTOR_TO_ELEVATOR_GEARING,
+            MOTOR_TO_ELEVATOR_GEARING.getGearRatio(),
             CARRIAGE_WEIGHT.in(Units.Kilograms),
             PULLY_RADIUS.in(Meters),
             0,
@@ -64,7 +65,7 @@ public class ElevatorConstants {
 
     // Motors are attached to a 12t gear which turns a 70t gear (which is attached to a 22t gear), simplified to 35/6
     // Note: 35/6 = 0, because of integer division truncation, use doubles as below.
-    public static final double MOTOR_TO_ELEVATOR_GEARING = 35.0/6.0;
+    public static final GearRatio MOTOR_TO_ELEVATOR_GEARING = new GearRatio(12, 70);
 
     public static final Distance MAXIMUM_ELEVATOR_HEIGHT = Units.Inches.of(15.75);
 
