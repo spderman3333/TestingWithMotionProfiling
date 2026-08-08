@@ -27,8 +27,8 @@ public class RobotContainer {
 
   private void configureBindings() {
     System.out.println("Bindings Configured.");
-    mainController.triangle().onTrue(elevator.setMotorPositonWithoutMP(Elevator.ElevatorMotorPosition.TOP));
-    mainController.cross().onTrue(elevator.setMotorPositonWithoutMP(Elevator.ElevatorMotorPosition.BASE));
+    mainController.povUp().onTrue(elevator.setMotorPosition(Elevator.ElevatorMotorPosition.TOP));
+    mainController.povDown().onTrue(elevator.setMotorPosition(Elevator.ElevatorMotorPosition.BASE));
 
   }
 

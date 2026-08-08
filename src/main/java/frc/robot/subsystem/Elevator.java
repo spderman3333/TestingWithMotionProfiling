@@ -179,7 +179,7 @@ public class Elevator extends SubsystemBase {
         ).until(() -> motionProfile.isFinished(motionProfilingTimer.get()));
     }
 
-    public Command setMotorPositonWithoutMP(ElevatorMotorPosition elevatorMotorPosition) {
+    public Command setMotorPositionWithoutMP(ElevatorMotorPosition elevatorMotorPosition) {
         System.out.println("Set motor Position without MP:" + elevatorMotorPosition.getAngleOfMotor());
         return runOnce(() -> topMotor.setControl(motorControlScheme.withPosition(elevatorMotorPosition.getAngleOfMotor())));
     }
