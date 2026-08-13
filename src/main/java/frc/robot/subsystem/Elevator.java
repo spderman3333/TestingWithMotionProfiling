@@ -1,18 +1,12 @@
 package frc.robot.subsystem;
 
-import com.ctre.phoenix6.configs.MotorOutputConfigs;
-import com.ctre.phoenix6.configs.Slot0Configs;
-import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.Follower;
 import com.ctre.phoenix6.controls.PositionVoltage;
 import com.ctre.phoenix6.hardware.TalonFX;
 
-import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.MotorAlignmentValue;
-import com.ctre.phoenix6.signals.NeutralModeValue;
 import com.ctre.phoenix6.sim.ChassisReference;
 import com.ctre.phoenix6.sim.TalonFXSimState;
-import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.networktables.DoublePublisher;
 import edu.wpi.first.networktables.NetworkTable;
@@ -163,6 +157,8 @@ public class Elevator extends SubsystemBase {
         TrapezoidProfile.State startingState = new TrapezoidProfile.State(topMotor.getPosition().getValue().in(Units.Rotations), topMotor.getVelocity().getValue().in(Units.RotationsPerSecond));
         TrapezoidProfile.State endingState = new TrapezoidProfile.State(elevatorMotorPosition.getAngleOfMotor().in(Units.Rotations), 0);
 
+        // TODO: the "current" param should actually be updated with each loop
+        //  We also dont need the "motionProfilingTimer", rather in ".calculate()" it should be 0.02 sec (as per cycle).
         return startRun(
             () -> motionProfilingTimer.restart(),
             () -> {
@@ -189,6 +185,8 @@ public class Elevator extends SubsystemBase {
      */
     public enum ElevatorMotorPosition {
         BASE(Units.Rotations.of(0)),
+        MIDDLE(Units.Rotations.of(8)),
+        TEST(Units.Rotations.of(12)),
         TOP(Units.Rotations.of(16));
 
         // Angle of the RAW motor, no gear ratios taken into account.
