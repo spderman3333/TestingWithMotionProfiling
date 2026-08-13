@@ -153,7 +153,7 @@ public class Elevator extends SubsystemBase {
     public Command setMotorPosition(ElevatorMotorPosition elevatorMotorPosition) {
         currentPositionSetpoint=elevatorMotorPosition;
 
-        // The TrapezoidProfile.calculate is a little missleading with its "current" parameter, as it should be called "start" as it is the state of the system at the beginning (and set only once).
+        // The TrapezoidProfile.calculate is a little misleading with its "current" parameter, as it should be called "start" as it is the state of the system at the beginning (and set only once).
         TrapezoidProfile.State startingState = new TrapezoidProfile.State(topMotor.getPosition().getValue().in(Units.Rotations), topMotor.getVelocity().getValue().in(Units.RotationsPerSecond));
         TrapezoidProfile.State endingState = new TrapezoidProfile.State(elevatorMotorPosition.getAngleOfMotor().in(Units.Rotations), 0);
 
