@@ -12,6 +12,8 @@ import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.units.Units;
 import edu.wpi.first.units.measure.Angle;
+import edu.wpi.first.units.measure.AngularAcceleration;
+import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.simulation.ElevatorSim;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
@@ -24,7 +26,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Robot;
 
-import static edu.wpi.first.units.Units.Meters;
+import static edu.wpi.first.units.Units.*;
 import static frc.robot.subsystem.ElevatorConstants.*;
 
 /**
@@ -57,6 +59,16 @@ public class Elevator extends SubsystemBase {
     // NT publishers for logging
     private DoublePublisher topMotorRotationPublisher; // In Rotations
     private DoublePublisher bottomMotorRotationPublisher; // In Rotations
+    private DoublePublisher topMotorVelocityPublisher; // In RotationsPerSecond
+    private DoublePublisher bottomMotorVelocityPublisher; // In RotationsPerSecond
+    private DoublePublisher topMotorAccelerationPublisher; // In RotationsPerSecondPerSecond
+    private DoublePublisher bottomMotorAccelerationPublisher; // In RotationsPerSecondPerSecond
+
+    private DoublePublisher motionProfilingRotationSetpointPublisher; // In Rotations
+    private DoublePublisher motionProfilingVelocitySetpointPublisher; // In RotationsPerSecond
+
+    private Angle motionProfilingRotationSetpoint;
+    private AngularVelocity motionProfilingVelocitySetpoint;
 
     private ElevatorSim elevatorSim;
 
@@ -67,8 +79,22 @@ public class Elevator extends SubsystemBase {
 
     public Elevator(NetworkTableInstance ntInstance) {
         elevatorLoggingNT = ntInstance.getTable("Subsystems/Elevator");
+        // Motor Rotations
         topMotorRotationPublisher = elevatorLoggingNT.getDoubleTopic("Top Motor Rotations (rots)").publish();
         bottomMotorRotationPublisher = elevatorLoggingNT.getDoubleTopic("Bottom Motor Rotations (rots)").publish();
+        // Motor Velocity
+        topMotorVelocityPublisher = elevatorLoggingNT.getDoubleTopic("Top Motor Velocity (rots/s)").publish();
+        bottomMotorVelocityPublisher = elevatorLoggingNT.getDoubleTopic("Bottom Motor Velocity (rots/s)").publish();
+        // Motor Acceleration
+        topMotorAccelerationPublisher = elevatorLoggingNT.getDoubleTopic("Top Motor Acceleration (rots/s^2)").publish();
+        bottomMotorAccelerationPublisher = elevatorLoggingNT.getDoubleTopic("Bottom Motor Acceleration (rots/s^2)").publish();
+
+        // Setpoints from the motor profiling so we can log them.
+        motionProfilingRotationSetpoint = Rotation.of(0);
+        motionProfilingVelocitySetpoint = RotationsPerSecond.of(0);
+
+        motionProfilingRotationSetpointPublisher = elevatorLoggingNT.getDoubleTopic("Motion Profiling Rotations (rots)").publish();
+        motionProfilingVelocitySetpointPublisher = elevatorLoggingNT.getDoubleTopic("Motion Profiling Velocity (rots/s)").publish();
 
         topMotor.getConfigurator().apply(ElevatorConstants.MOTOR_CONFIG);
         bottomMotor.getConfigurator().apply(ElevatorConstants.MOTOR_CONFIG);
@@ -141,7 +167,13 @@ public class Elevator extends SubsystemBase {
     public void periodic() {
         topMotorRotationPublisher.accept(topMotor.getPosition().getValue().in(Units.Rotations));
         bottomMotorRotationPublisher.accept(bottomMotor.getPosition().getValue().in(Units.Rotations));
+        topMotorVelocityPublisher.accept(topMotor.getVelocity().getValue().in(RotationsPerSecond));
+        bottomMotorVelocityPublisher.accept(bottomMotor.getVelocity().getValue().in(RotationsPerSecond));
+        topMotorAccelerationPublisher.accept(topMotor.getAcceleration().getValue().in(RotationsPerSecondPerSecond));
+        bottomMotorAccelerationPublisher.accept(bottomMotor.getAcceleration().getValue().in(RotationsPerSecondPerSecond));
 
+        motionProfilingRotationSetpointPublisher.accept(motionProfilingRotationSetpoint.in(Rotations));
+        motionProfilingVelocitySetpointPublisher.accept(motionProfilingVelocitySetpoint.in(RotationsPerSecond));
     }
 
     /**
@@ -169,15 +201,13 @@ public class Elevator extends SubsystemBase {
                     startingState,
                     endingState);
 
+                motionProfilingRotationSetpoint=Rotations.of(calculatedPosRots.position);
+                motionProfilingVelocitySetpoint=RotationsPerSecond.of(calculatedPosRots.velocity);
+
                 // Default unit for .withPosition() and .withVelocity() is rotations.
                 topMotor.setControl(motorControlScheme.withPosition(calculatedPosRots.position).withVelocity(calculatedPosRots.velocity));
             }
         ).until(() -> motionProfile.isFinished(motionProfilingTimer.get()));
-    }
-
-    public Command setMotorPositionWithoutMP(ElevatorMotorPosition elevatorMotorPosition) {
-        System.out.println("Set motor Position without MP:" + elevatorMotorPosition.getAngleOfMotor());
-        return runOnce(() -> topMotor.setControl(motorControlScheme.withPosition(elevatorMotorPosition.getAngleOfMotor())));
     }
 
     /**
