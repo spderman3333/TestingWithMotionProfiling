@@ -12,18 +12,20 @@ import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.units.Units;
 import edu.wpi.first.units.measure.Angle;
-import edu.wpi.first.units.measure.AngularAcceleration;
 import edu.wpi.first.units.measure.AngularVelocity;
+import edu.wpi.first.units.measure.Voltage;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.simulation.ElevatorSim;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import edu.wpi.first.wpilibj.smartdashboard.MechanismLigament2d;
 import edu.wpi.first.wpilibj.smartdashboard.MechanismRoot2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj.sysid.SysIdRoutineLog;
 import edu.wpi.first.wpilibj.util.Color;
 import edu.wpi.first.wpilibj.util.Color8Bit;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.robot.Robot;
 
 import static edu.wpi.first.units.Units.*;
@@ -32,7 +34,7 @@ import static frc.robot.subsystem.ElevatorConstants.*;
 /**
  * Class for testing motion profiling on Maelstrom.
  */
-public class Elevator extends SubsystemBase {
+public class Elevator extends SubsystemBase implements AutoCloseable {
     // TODO: Add simulation here.
 
     private final TalonFX topMotor = new TalonFX(ElevatorConstants.TOP_MOTOR_CAN_ID);
@@ -76,6 +78,8 @@ public class Elevator extends SubsystemBase {
     private MechanismRoot2d elevatorMechanismRoot;
     private MechanismLigament2d elevatorMechanismLigament;
 
+    private SysIdRoutine sysIdRoutine;
+
 
     public Elevator(NetworkTableInstance ntInstance) {
         elevatorLoggingNT = ntInstance.getTable("Subsystems/Elevator");
@@ -107,6 +111,14 @@ public class Elevator extends SubsystemBase {
         currentPositionSetpoint=ElevatorMotorPosition.BASE;
 
         motorControlScheme = new PositionVoltage(currentPositionSetpoint.getAngleOfMotor());
+
+        sysIdRoutine = new SysIdRoutine(
+            new SysIdRoutine.Config(),
+            new SysIdRoutine.Mechanism(
+                this::controlWithVoltage,
+                this::logSysID,
+                this)
+        );
 
         if (Robot.isSimulation()) {
             elevatorSim = constructElevatorSim();
@@ -208,6 +220,38 @@ public class Elevator extends SubsystemBase {
                 topMotor.setControl(motorControlScheme.withPosition(calculatedPosRots.position).withVelocity(calculatedPosRots.velocity));
             }
         ).until(() -> motionProfile.isFinished(motionProfilingTimer.get()));
+    }
+
+    /**
+     * Controls the subsystem's motors directly with voltage for system identification.
+     * @param voltage Voltage to apply to both motors.
+     */
+    private void controlWithVoltage(Voltage voltage) {
+        topMotor.setVoltage(voltage.in(Volts));
+    }
+
+    private void logSysID(SysIdRoutineLog log) {
+        var motor = log.motor("Top Motor");
+        motor.angularPosition(topMotor.getPosition().getValue());
+        motor.angularVelocity(topMotor.getVelocity().getValue());
+        motor.voltage(topMotor.getMotorVoltage().getValue());
+    }
+
+    /**
+     * Stops both motors and makes them apply a brake.
+     */
+    public void stop() {
+        topMotor.disable();
+    }
+
+    @Override
+    public void close() {
+        topMotor.close();
+        bottomMotor.close();
+
+        elevatorMechanismLigament.close();
+        elevatorMechanismRoot.close();
+        elevatorMechanism.close();
     }
 
     /**
