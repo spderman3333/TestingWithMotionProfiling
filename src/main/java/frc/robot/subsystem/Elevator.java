@@ -47,27 +47,25 @@ public class Elevator extends SubsystemBase implements AutoCloseable {
 
     private ElevatorMotorPosition currentPositionSetpoint;
 
-    private TrapezoidProfile motionProfile = new TrapezoidProfile(
+    private final TrapezoidProfile motionProfile = new TrapezoidProfile(
         new TrapezoidProfile.Constraints(
             ElevatorConstants.MAX_ELEVATOR_VELOCITY.in(Units.RotationsPerSecond),
             ElevatorConstants.MAX_ELEVATOR_ACCELERATION.in(Units.RotationsPerSecondPerSecond)
         ));
 
     // Used for motion profiling.
-    private Timer motionProfilingTimer = new Timer();
+    private final Timer motionProfilingTimer = new Timer();
 
-    // Keep track of the network table where data from the elevator will be logged.
-    private NetworkTable elevatorLoggingNT;
     // NT publishers for logging
-    private DoublePublisher topMotorRotationPublisher; // In Rotations
-    private DoublePublisher bottomMotorRotationPublisher; // In Rotations
-    private DoublePublisher topMotorVelocityPublisher; // In RotationsPerSecond
-    private DoublePublisher bottomMotorVelocityPublisher; // In RotationsPerSecond
-    private DoublePublisher topMotorAccelerationPublisher; // In RotationsPerSecondPerSecond
-    private DoublePublisher bottomMotorAccelerationPublisher; // In RotationsPerSecondPerSecond
+    private final DoublePublisher topMotorRotationPublisher; // In Rotations
+    private final DoublePublisher bottomMotorRotationPublisher; // In Rotations
+    private final DoublePublisher topMotorVelocityPublisher; // In RotationsPerSecond
+    private final DoublePublisher bottomMotorVelocityPublisher; // In RotationsPerSecond
+    private final DoublePublisher topMotorAccelerationPublisher; // In RotationsPerSecondPerSecond
+    private final DoublePublisher bottomMotorAccelerationPublisher; // In RotationsPerSecondPerSecond
 
-    private DoublePublisher motionProfilingRotationSetpointPublisher; // In Rotations
-    private DoublePublisher motionProfilingVelocitySetpointPublisher; // In RotationsPerSecond
+    private final DoublePublisher motionProfilingRotationSetpointPublisher; // In Rotations
+    private final DoublePublisher motionProfilingVelocitySetpointPublisher; // In RotationsPerSecond
 
     private Angle motionProfilingRotationSetpoint;
     private AngularVelocity motionProfilingVelocitySetpoint;
@@ -82,7 +80,8 @@ public class Elevator extends SubsystemBase implements AutoCloseable {
 
 
     public Elevator(NetworkTableInstance ntInstance) {
-        elevatorLoggingNT = ntInstance.getTable("Subsystems/Elevator");
+        // Keep track of the network table where data from the elevator will be logged.
+        NetworkTable elevatorLoggingNT = ntInstance.getTable("Subsystems/Elevator");
         // Motor Rotations
         topMotorRotationPublisher = elevatorLoggingNT.getDoubleTopic("Top Motor Rotations (rots)").publish();
         bottomMotorRotationPublisher = elevatorLoggingNT.getDoubleTopic("Bottom Motor Rotations (rots)").publish();
