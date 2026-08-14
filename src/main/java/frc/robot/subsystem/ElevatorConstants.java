@@ -31,7 +31,7 @@ public class ElevatorConstants {
             .withKS(0)
             .withKV(0)
             .withKA(0)
-            .withKG(0));
+            .withKG(0.3));
 
     public static ElevatorSim constructElevatorSim() {
         return new ElevatorSim(
