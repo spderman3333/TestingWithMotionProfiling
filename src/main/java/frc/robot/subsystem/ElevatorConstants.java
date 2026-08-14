@@ -33,18 +33,6 @@ public class ElevatorConstants {
             .withKA(0)
             .withKG(0));
 
-    public static ElevatorSim elevatorSim = new ElevatorSim(
-        DCMotor.getKrakenX60(2),
-        // Motors are attached to a 12t gear which turns a 70t gear (which is attached to a 22t gear), simplified to 35/6
-        35.0/6.0, // Reminder 35/6 = 5, because of integer division truncation, use doubles.
-        Units.Pounds.of(13.92).in(Units.Kilograms),
-        // Calculated the Pitch diameter of WCP-0560 divide by 2 for radius
-        Units.Inches.of(1.75667).in(Meters)/2.0,
-        0,
-        Units.Inches.of(15.75).in(Meters),
-        true,
-        0);
-
     public static ElevatorSim constructElevatorSim() {
         return new ElevatorSim(
             DCMotor.getKrakenX60(2),
