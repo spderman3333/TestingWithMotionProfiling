@@ -22,6 +22,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.util.Color;
 import edu.wpi.first.wpilibj.util.Color8Bit;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.RunCommand;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Robot;
 
@@ -154,7 +155,7 @@ public class Elevator extends SubsystemBase {
         currentPositionSetpoint=elevatorMotorPosition;
 
         // The TrapezoidProfile.calculate is a little misleading with its "current" parameter, as it should be called "start" as it is the state of the system at the beginning (and set only once).
-        TrapezoidProfile.State startingState = new TrapezoidProfile.State(topMotor.getPosition().getValue().in(Units.Rotations), topMotor.getVelocity().getValue().in(Units.RotationsPerSecond));
+        TrapezoidProfile.State startingState = new TrapezoidProfile.State();
         TrapezoidProfile.State endingState = new TrapezoidProfile.State(elevatorMotorPosition.getAngleOfMotor().in(Units.Rotations), 0);
 
         // TODO: the "current" param should actually be updated with each loop
@@ -162,10 +163,12 @@ public class Elevator extends SubsystemBase {
         return startRun(
             () -> motionProfilingTimer.restart(),
             () -> {
-                double timeSinceStartOfControl = motionProfilingTimer.get();
+                startingState.position = topMotor.getPosition().getValue().in(Units.Rotations);
+                startingState.velocity = topMotor.getVelocity().getValue().in(Units.RotationsPerSecond);
+
                 // Units of calculatedPosRots will be in rotations.
                 TrapezoidProfile.State calculatedPosRots = motionProfile.calculate(
-                    timeSinceStartOfControl,
+                    MOTION_PROFILING_DELTA_TIME,
                     startingState,
                     endingState);
 
