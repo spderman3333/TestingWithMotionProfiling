@@ -25,25 +25,13 @@ public class ElevatorConstants {
                 .withInverted(InvertedValue.Clockwise_Positive)
                 .withNeutralMode(NeutralModeValue.Brake))
         .withSlot0(new Slot0Configs()
-            .withKP(1)
+            .withKP(0)
             .withKI(0)
             .withKD(0)
-            .withKS(1)
-            .withKV(1)
-            .withKA(1)
-            .withKG(1));
-
-    public static ElevatorSim elevatorSim = new ElevatorSim(
-        DCMotor.getKrakenX60(2),
-        // Motors are attached to a 12t gear which turns a 70t gear (which is attached to a 22t gear), simplified to 35/6
-        35.0/6.0, // Reminder 6/35 = 0, because of integer division truncation, use doubles.
-        Units.Pounds.of(13.92).in(Units.Kilograms),
-        // Calculated the Pitch diameter of WCP-0560 divide by 2 for radius
-        Units.Inches.of(1.75667).in(Meters)/2.0,
-        0,
-        Units.Inches.of(15.75).in(Meters),
-        true,
-        0);
+            .withKS(0)
+            .withKV(0)
+            .withKA(0)
+            .withKG(0.3));
 
     public static ElevatorSim constructElevatorSim() {
         return new ElevatorSim(
@@ -75,24 +63,5 @@ public class ElevatorConstants {
 
     // Same time period as the RoboRIO cycles
     public static final double MOTION_PROFILING_DELTA_TIME = 0.02;
-
-    /**
-     * Positions for the motor to attempt to reach.
-     */
-    public enum ElevatorMotorPosition {
-        BASE(Units.Rotations.of(0)),
-        TOP(Units.Rotations.of(16));
-
-        // Angle of the RAW motor, no gear ratios taken into account.
-        private final Angle angleOfMotor;
-
-        ElevatorMotorPosition(Angle position) {
-            angleOfMotor = position;
-        }
-
-        public Angle getAngleOfMotor() {
-            return angleOfMotor;
-        }
-    }
 
 }
