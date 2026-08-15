@@ -24,7 +24,9 @@ import edu.wpi.first.wpilibj.sysid.SysIdRoutineLog;
 import edu.wpi.first.wpilibj.util.Color;
 import edu.wpi.first.wpilibj.util.Color8Bit;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import edu.wpi.first.wpilibj2.command.WaitCommand;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.robot.Robot;
 
@@ -76,8 +78,6 @@ public class Elevator extends SubsystemBase implements AutoCloseable {
     private MechanismRoot2d elevatorMechanismRoot;
     private MechanismLigament2d elevatorMechanismLigament;
 
-    private SysIdRoutine sysIdRoutine;
-
 
     public Elevator(NetworkTableInstance ntInstance) {
         // Keep track of the network table where data from the elevator will be logged.
@@ -110,14 +110,6 @@ public class Elevator extends SubsystemBase implements AutoCloseable {
         currentPositionSetpoint=ElevatorMotorPosition.BASE;
 
         motorControlScheme = new PositionVoltage(currentPositionSetpoint.getAngleOfMotor());
-
-        sysIdRoutine = new SysIdRoutine(
-            new SysIdRoutine.Config(),
-            new SysIdRoutine.Mechanism(
-                this::controlWithVoltage,
-                this::logSysID,
-                this)
-        );
 
         if (Robot.isSimulation()) {
             elevatorSim = constructElevatorSim();
@@ -251,6 +243,34 @@ public class Elevator extends SubsystemBase implements AutoCloseable {
         elevatorMechanismLigament.close();
         elevatorMechanismRoot.close();
         elevatorMechanism.close();
+    }
+
+    /**
+     * Runs a sysid routine to get the kS and kG constant.
+     * @return
+     */
+    public Command getSysIdRoutine() {
+        SysIdRoutine sysIdRoutine = new SysIdRoutine(
+            new SysIdRoutine.Config(
+                Volts.per(Seconds).of(0.25),
+                Volts.of(3),
+                Seconds.of(5)
+            ),
+            new SysIdRoutine.Mechanism(
+                this::controlWithVoltage,
+                this::logSysID,
+                this)
+        );
+
+        return new SequentialCommandGroup(
+            sysIdRoutine.quasistatic(SysIdRoutine.Direction.kForward),
+            new WaitCommand(3),
+            sysIdRoutine.quasistatic(SysIdRoutine.Direction.kReverse),
+            new WaitCommand(3),
+            sysIdRoutine.dynamic(SysIdRoutine.Direction.kForward),
+            new WaitCommand(3),
+            sysIdRoutine.dynamic(SysIdRoutine.Direction.kReverse)
+        );
     }
 
     /**
