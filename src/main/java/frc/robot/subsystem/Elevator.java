@@ -10,6 +10,7 @@ import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.networktables.DoublePublisher;
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableInstance;
+import edu.wpi.first.networktables.StringPublisher;
 import edu.wpi.first.units.Units;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.AngularVelocity;
@@ -69,6 +70,8 @@ public class Elevator extends SubsystemBase implements AutoCloseable {
     private final DoublePublisher motionProfilingRotationSetpointPublisher; // In Rotations
     private final DoublePublisher motionProfilingVelocitySetpointPublisher; // In RotationsPerSecond
 
+    private final StringPublisher sysIDStatePublisher;
+
     private Angle motionProfilingRotationSetpoint;
     private AngularVelocity motionProfilingVelocitySetpoint;
 
@@ -86,18 +89,20 @@ public class Elevator extends SubsystemBase implements AutoCloseable {
         topMotorRotationPublisher = elevatorLoggingNT.getDoubleTopic("Top Motor Rotations (rots)").publish();
         bottomMotorRotationPublisher = elevatorLoggingNT.getDoubleTopic("Bottom Motor Rotations (rots)").publish();
         // Motor Velocity
-        topMotorVelocityPublisher = elevatorLoggingNT.getDoubleTopic("Top Motor Velocity (rots/s)").publish();
-        bottomMotorVelocityPublisher = elevatorLoggingNT.getDoubleTopic("Bottom Motor Velocity (rots/s)").publish();
+        topMotorVelocityPublisher = elevatorLoggingNT.getDoubleTopic("Top Motor Velocity (rots per s)").publish();
+        bottomMotorVelocityPublisher = elevatorLoggingNT.getDoubleTopic("Bottom Motor Velocity (rots per s)").publish();
         // Motor Acceleration
-        topMotorAccelerationPublisher = elevatorLoggingNT.getDoubleTopic("Top Motor Acceleration (rots/s^2)").publish();
-        bottomMotorAccelerationPublisher = elevatorLoggingNT.getDoubleTopic("Bottom Motor Acceleration (rots/s^2)").publish();
+        topMotorAccelerationPublisher = elevatorLoggingNT.getDoubleTopic("Top Motor Acceleration (rots per s^2)").publish();
+        bottomMotorAccelerationPublisher = elevatorLoggingNT.getDoubleTopic("Bottom Motor Acceleration (rots per s^2)").publish();
 
         // Setpoints from the motor profiling so we can log them.
         motionProfilingRotationSetpoint = Rotation.of(0);
         motionProfilingVelocitySetpoint = RotationsPerSecond.of(0);
 
         motionProfilingRotationSetpointPublisher = elevatorLoggingNT.getDoubleTopic("Motion Profiling Rotations (rots)").publish();
-        motionProfilingVelocitySetpointPublisher = elevatorLoggingNT.getDoubleTopic("Motion Profiling Velocity (rots/s)").publish();
+        motionProfilingVelocitySetpointPublisher = elevatorLoggingNT.getDoubleTopic("Motion Profiling Velocity (rots per s)").publish();
+
+        sysIDStatePublisher = elevatorLoggingNT.getStringTopic("SYS ID State").publish();
 
         topMotor.getConfigurator().apply(ElevatorConstants.MOTOR_CONFIG);
         bottomMotor.getConfigurator().apply(ElevatorConstants.MOTOR_CONFIG);
@@ -221,13 +226,6 @@ public class Elevator extends SubsystemBase implements AutoCloseable {
         topMotor.setVoltage(voltage.in(Volts));
     }
 
-    private void logSysID(SysIdRoutineLog log) {
-        var motor = log.motor("Top Motor");
-        motor.angularPosition(topMotor.getPosition().getValue());
-        motor.angularVelocity(topMotor.getVelocity().getValue());
-        motor.voltage(topMotor.getMotorVoltage().getValue());
-    }
-
     /**
      * Stops both motors and makes them apply a brake.
      */
@@ -252,24 +250,28 @@ public class Elevator extends SubsystemBase implements AutoCloseable {
     public Command getSysIdRoutine() {
         SysIdRoutine sysIdRoutine = new SysIdRoutine(
             new SysIdRoutine.Config(
-                Volts.per(Seconds).of(0.25),
+                Volts.per(Seconds).of(0.5),
                 Volts.of(3),
-                Seconds.of(5)
+                Seconds.of(3)
             ),
             new SysIdRoutine.Mechanism(
                 this::controlWithVoltage,
-                this::logSysID,
+                (state) -> sysIDStatePublisher.accept(state.toString()),
                 this)
         );
 
         return new SequentialCommandGroup(
-            sysIdRoutine.quasistatic(SysIdRoutine.Direction.kForward),
+            sysIdRoutine.quasistatic(SysIdRoutine.Direction.kForward)
+                .until(() -> topMotor.getPosition().getValue().in(Units.Rotations) >= 15),
             new WaitCommand(3),
-            sysIdRoutine.quasistatic(SysIdRoutine.Direction.kReverse),
+            sysIdRoutine.quasistatic(SysIdRoutine.Direction.kReverse)
+                .until(() -> topMotor.getPosition().getValue().in(Units.Rotations) <= 0.75),
             new WaitCommand(3),
-            sysIdRoutine.dynamic(SysIdRoutine.Direction.kForward),
+            sysIdRoutine.dynamic(SysIdRoutine.Direction.kForward)
+                .until(() -> topMotor.getPosition().getValue().in(Units.Rotations) >= 15),
             new WaitCommand(3),
             sysIdRoutine.dynamic(SysIdRoutine.Direction.kReverse)
+                .until(() -> topMotor.getPosition().getValue().in(Units.Rotations) <= 0.75)
         );
     }
 
