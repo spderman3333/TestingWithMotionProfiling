@@ -65,6 +65,9 @@ public class Elevator extends SubsystemBase implements AutoCloseable {
     private final DoublePublisher topMotorVelocityPublisher; // In RotationsPerSecond
     private final DoublePublisher bottomMotorVelocityPublisher; // In RotationsPerSecond
 
+    private final DoublePublisher topMotorVoltagePublisher;
+    private final DoublePublisher bottomMotorVoltagePublisher;
+
     private final DoublePublisher motionProfilingRotationSetpointPublisher; // In Rotations
     private final DoublePublisher motionProfilingVelocitySetpointPublisher; // In RotationsPerSecond
 
@@ -87,15 +90,19 @@ public class Elevator extends SubsystemBase implements AutoCloseable {
         topMotorRotationPublisher = elevatorLoggingNT.getDoubleTopic("Top Motor Rotations (rots)").publish();
         bottomMotorRotationPublisher = elevatorLoggingNT.getDoubleTopic("Bottom Motor Rotations (rots)").publish();
         // Motor Velocity
-        topMotorVelocityPublisher = elevatorLoggingNT.getDoubleTopic("Top Motor Velocity (rots per s)").publish();
-        bottomMotorVelocityPublisher = elevatorLoggingNT.getDoubleTopic("Bottom Motor Velocity (rots per s)").publish();
+        topMotorVelocityPublisher = elevatorLoggingNT.getDoubleTopic("Top Motor Velocity (rots per sec)").publish();
+        bottomMotorVelocityPublisher = elevatorLoggingNT.getDoubleTopic("Bottom Motor Velocity (rots per sec)").publish();
+        // Motor Voltage
+        topMotorVoltagePublisher = elevatorLoggingNT.getDoubleTopic("Top Motor Voltage (volts)").publish();
+        bottomMotorVoltagePublisher = elevatorLoggingNT.getDoubleTopic("Bottom Motor Voltage (volts)").publish();
+
 
         // Setpoints from the motor profiling so we can log them.
         motionProfilingRotationSetpoint = Rotation.of(0);
         motionProfilingVelocitySetpoint = RotationsPerSecond.of(0);
 
         motionProfilingRotationSetpointPublisher = elevatorLoggingNT.getDoubleTopic("Motion Profiling Rotations (rots)").publish();
-        motionProfilingVelocitySetpointPublisher = elevatorLoggingNT.getDoubleTopic("Motion Profiling Velocity (rots per s)").publish();
+        motionProfilingVelocitySetpointPublisher = elevatorLoggingNT.getDoubleTopic("Motion Profiling Velocity (rots per sec)").publish();
 
         sysIDStatePublisher = elevatorLoggingNT.getStringTopic("SYS ID State").publish();
 
@@ -168,10 +175,15 @@ public class Elevator extends SubsystemBase implements AutoCloseable {
 
     @Override
     public void periodic() {
+        // Motor Rotation Logging Update
         topMotorRotationPublisher.accept(topMotor.getPosition().getValue().in(Units.Rotations));
         bottomMotorRotationPublisher.accept(bottomMotor.getPosition().getValue().in(Units.Rotations));
+        // Motor Velocity Logging Update
         topMotorVelocityPublisher.accept(topMotor.getVelocity().getValue().in(RotationsPerSecond));
         bottomMotorVelocityPublisher.accept(bottomMotor.getVelocity().getValue().in(RotationsPerSecond));
+        // Motor Voltage Logging Update
+        topMotorVoltagePublisher.accept(topMotor.getMotorVoltage().getValue().in(Volt));
+        bottomMotorVoltagePublisher.accept(bottomMotor.getMotorVoltage().getValue().in(Volt));
 
         motionProfilingRotationSetpointPublisher.accept(motionProfilingRotationSetpoint.in(Rotations));
         motionProfilingVelocitySetpointPublisher.accept(motionProfilingVelocitySetpoint.in(RotationsPerSecond));
