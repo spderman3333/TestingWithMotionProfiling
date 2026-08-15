@@ -10,20 +10,25 @@ import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.networktables.DoublePublisher;
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableInstance;
+import edu.wpi.first.networktables.StringPublisher;
 import edu.wpi.first.units.Units;
 import edu.wpi.first.units.measure.Angle;
-import edu.wpi.first.units.measure.AngularAcceleration;
 import edu.wpi.first.units.measure.AngularVelocity;
+import edu.wpi.first.units.measure.Voltage;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.simulation.ElevatorSim;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import edu.wpi.first.wpilibj.smartdashboard.MechanismLigament2d;
 import edu.wpi.first.wpilibj.smartdashboard.MechanismRoot2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj.sysid.SysIdRoutineLog;
 import edu.wpi.first.wpilibj.util.Color;
 import edu.wpi.first.wpilibj.util.Color8Bit;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import edu.wpi.first.wpilibj2.command.WaitCommand;
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.robot.Robot;
 
 import static edu.wpi.first.units.Units.*;
@@ -32,7 +37,7 @@ import static frc.robot.subsystem.ElevatorConstants.*;
 /**
  * Class for testing motion profiling on Maelstrom.
  */
-public class Elevator extends SubsystemBase {
+public class Elevator extends SubsystemBase implements AutoCloseable {
     // TODO: Add simulation here.
 
     private final TalonFX topMotor = new TalonFX(ElevatorConstants.TOP_MOTOR_CAN_ID);
@@ -45,27 +50,28 @@ public class Elevator extends SubsystemBase {
 
     private ElevatorMotorPosition currentPositionSetpoint;
 
-    private TrapezoidProfile motionProfile = new TrapezoidProfile(
+    private final TrapezoidProfile motionProfile = new TrapezoidProfile(
         new TrapezoidProfile.Constraints(
             ElevatorConstants.MAX_ELEVATOR_VELOCITY.in(Units.RotationsPerSecond),
             ElevatorConstants.MAX_ELEVATOR_ACCELERATION.in(Units.RotationsPerSecondPerSecond)
         ));
 
     // Used for motion profiling.
-    private Timer motionProfilingTimer = new Timer();
+    private final Timer motionProfilingTimer = new Timer();
 
-    // Keep track of the network table where data from the elevator will be logged.
-    private NetworkTable elevatorLoggingNT;
     // NT publishers for logging
-    private DoublePublisher topMotorRotationPublisher; // In Rotations
-    private DoublePublisher bottomMotorRotationPublisher; // In Rotations
-    private DoublePublisher topMotorVelocityPublisher; // In RotationsPerSecond
-    private DoublePublisher bottomMotorVelocityPublisher; // In RotationsPerSecond
-    private DoublePublisher topMotorAccelerationPublisher; // In RotationsPerSecondPerSecond
-    private DoublePublisher bottomMotorAccelerationPublisher; // In RotationsPerSecondPerSecond
+    private final DoublePublisher topMotorRotationPublisher; // In Rotations
+    private final DoublePublisher bottomMotorRotationPublisher; // In Rotations
+    private final DoublePublisher topMotorVelocityPublisher; // In RotationsPerSecond
+    private final DoublePublisher bottomMotorVelocityPublisher; // In RotationsPerSecond
 
-    private DoublePublisher motionProfilingRotationSetpointPublisher; // In Rotations
-    private DoublePublisher motionProfilingVelocitySetpointPublisher; // In RotationsPerSecond
+    private final DoublePublisher topMotorVoltagePublisher;
+    private final DoublePublisher bottomMotorVoltagePublisher;
+
+    private final DoublePublisher motionProfilingRotationSetpointPublisher; // In Rotations
+    private final DoublePublisher motionProfilingVelocitySetpointPublisher; // In RotationsPerSecond
+
+    private final StringPublisher sysIDStatePublisher;
 
     private Angle motionProfilingRotationSetpoint;
     private AngularVelocity motionProfilingVelocitySetpoint;
@@ -78,23 +84,27 @@ public class Elevator extends SubsystemBase {
 
 
     public Elevator(NetworkTableInstance ntInstance) {
-        elevatorLoggingNT = ntInstance.getTable("Subsystems/Elevator");
+        // Keep track of the network table where data from the elevator will be logged.
+        NetworkTable elevatorLoggingNT = ntInstance.getTable("Subsystems/Elevator");
         // Motor Rotations
         topMotorRotationPublisher = elevatorLoggingNT.getDoubleTopic("Top Motor Rotations (rots)").publish();
         bottomMotorRotationPublisher = elevatorLoggingNT.getDoubleTopic("Bottom Motor Rotations (rots)").publish();
         // Motor Velocity
-        topMotorVelocityPublisher = elevatorLoggingNT.getDoubleTopic("Top Motor Velocity (rots/s)").publish();
-        bottomMotorVelocityPublisher = elevatorLoggingNT.getDoubleTopic("Bottom Motor Velocity (rots/s)").publish();
-        // Motor Acceleration
-        topMotorAccelerationPublisher = elevatorLoggingNT.getDoubleTopic("Top Motor Acceleration (rots/s^2)").publish();
-        bottomMotorAccelerationPublisher = elevatorLoggingNT.getDoubleTopic("Bottom Motor Acceleration (rots/s^2)").publish();
+        topMotorVelocityPublisher = elevatorLoggingNT.getDoubleTopic("Top Motor Velocity (rots per sec)").publish();
+        bottomMotorVelocityPublisher = elevatorLoggingNT.getDoubleTopic("Bottom Motor Velocity (rots per sec)").publish();
+        // Motor Voltage
+        topMotorVoltagePublisher = elevatorLoggingNT.getDoubleTopic("Top Motor Voltage (volts)").publish();
+        bottomMotorVoltagePublisher = elevatorLoggingNT.getDoubleTopic("Bottom Motor Voltage (volts)").publish();
+
 
         // Setpoints from the motor profiling so we can log them.
         motionProfilingRotationSetpoint = Rotation.of(0);
         motionProfilingVelocitySetpoint = RotationsPerSecond.of(0);
 
         motionProfilingRotationSetpointPublisher = elevatorLoggingNT.getDoubleTopic("Motion Profiling Rotations (rots)").publish();
-        motionProfilingVelocitySetpointPublisher = elevatorLoggingNT.getDoubleTopic("Motion Profiling Velocity (rots/s)").publish();
+        motionProfilingVelocitySetpointPublisher = elevatorLoggingNT.getDoubleTopic("Motion Profiling Velocity (rots per sec)").publish();
+
+        sysIDStatePublisher = elevatorLoggingNT.getStringTopic("SYS ID State").publish();
 
         topMotor.getConfigurator().apply(ElevatorConstants.MOTOR_CONFIG);
         bottomMotor.getConfigurator().apply(ElevatorConstants.MOTOR_CONFIG);
@@ -165,12 +175,15 @@ public class Elevator extends SubsystemBase {
 
     @Override
     public void periodic() {
+        // Motor Rotation Logging Update
         topMotorRotationPublisher.accept(topMotor.getPosition().getValue().in(Units.Rotations));
         bottomMotorRotationPublisher.accept(bottomMotor.getPosition().getValue().in(Units.Rotations));
+        // Motor Velocity Logging Update
         topMotorVelocityPublisher.accept(topMotor.getVelocity().getValue().in(RotationsPerSecond));
         bottomMotorVelocityPublisher.accept(bottomMotor.getVelocity().getValue().in(RotationsPerSecond));
-        topMotorAccelerationPublisher.accept(topMotor.getAcceleration().getValue().in(RotationsPerSecondPerSecond));
-        bottomMotorAccelerationPublisher.accept(bottomMotor.getAcceleration().getValue().in(RotationsPerSecondPerSecond));
+        // Motor Voltage Logging Update
+        topMotorVoltagePublisher.accept(topMotor.getMotorVoltage().getValue().in(Volt));
+        bottomMotorVoltagePublisher.accept(bottomMotor.getMotorVoltage().getValue().in(Volt));
 
         motionProfilingRotationSetpointPublisher.accept(motionProfilingRotationSetpoint.in(Rotations));
         motionProfilingVelocitySetpointPublisher.accept(motionProfilingVelocitySetpoint.in(RotationsPerSecond));
@@ -208,6 +221,64 @@ public class Elevator extends SubsystemBase {
                 topMotor.setControl(motorControlScheme.withPosition(calculatedPosRots.position).withVelocity(calculatedPosRots.velocity));
             }
         ).until(() -> motionProfile.isFinished(motionProfilingTimer.get()));
+    }
+
+    /**
+     * Controls the subsystem's motors directly with voltage for system identification.
+     * @param voltage Voltage to apply to both motors.
+     */
+    private void controlWithVoltage(Voltage voltage) {
+        topMotor.setVoltage(voltage.in(Volts));
+    }
+
+    /**
+     * Stops both motors and makes them apply a brake.
+     */
+    public void stop() {
+        topMotor.disable();
+    }
+
+    @Override
+    public void close() {
+        topMotor.close();
+        bottomMotor.close();
+
+        elevatorMechanismLigament.close();
+        elevatorMechanismRoot.close();
+        elevatorMechanism.close();
+    }
+
+    /**
+     * Runs a sysid routine to get the kS and kG constant.
+     * @return
+     */
+    public Command getSysIdRoutine() {
+        SysIdRoutine sysIdRoutine = new SysIdRoutine(
+            new SysIdRoutine.Config(
+                Volts.per(Seconds).of(0.5),
+                Volts.of(3),
+                Seconds.of(3),
+                (state) -> sysIDStatePublisher.accept(state.toString())
+            ),
+            new SysIdRoutine.Mechanism(
+                this::controlWithVoltage,
+                null,
+                this)
+        );
+
+        return new SequentialCommandGroup(
+            sysIdRoutine.quasistatic(SysIdRoutine.Direction.kForward)
+                .until(() -> topMotor.getPosition().getValue().in(Units.Rotations) >= 15),
+            new WaitCommand(3),
+            sysIdRoutine.quasistatic(SysIdRoutine.Direction.kReverse)
+                .until(() -> topMotor.getPosition().getValue().in(Units.Rotations) <= 0.75),
+            new WaitCommand(3),
+            sysIdRoutine.dynamic(SysIdRoutine.Direction.kForward)
+                .until(() -> topMotor.getPosition().getValue().in(Units.Rotations) >= 15),
+            new WaitCommand(3),
+            sysIdRoutine.dynamic(SysIdRoutine.Direction.kReverse)
+                .until(() -> topMotor.getPosition().getValue().in(Units.Rotations) <= 0.75)
+        );
     }
 
     /**
