@@ -64,8 +64,6 @@ public class Elevator extends SubsystemBase implements AutoCloseable {
     private final DoublePublisher bottomMotorRotationPublisher; // In Rotations
     private final DoublePublisher topMotorVelocityPublisher; // In RotationsPerSecond
     private final DoublePublisher bottomMotorVelocityPublisher; // In RotationsPerSecond
-    private final DoublePublisher topMotorAccelerationPublisher; // In RotationsPerSecondPerSecond
-    private final DoublePublisher bottomMotorAccelerationPublisher; // In RotationsPerSecondPerSecond
 
     private final DoublePublisher motionProfilingRotationSetpointPublisher; // In Rotations
     private final DoublePublisher motionProfilingVelocitySetpointPublisher; // In RotationsPerSecond
@@ -91,9 +89,6 @@ public class Elevator extends SubsystemBase implements AutoCloseable {
         // Motor Velocity
         topMotorVelocityPublisher = elevatorLoggingNT.getDoubleTopic("Top Motor Velocity (rots per s)").publish();
         bottomMotorVelocityPublisher = elevatorLoggingNT.getDoubleTopic("Bottom Motor Velocity (rots per s)").publish();
-        // Motor Acceleration
-        topMotorAccelerationPublisher = elevatorLoggingNT.getDoubleTopic("Top Motor Acceleration (rots per s^2)").publish();
-        bottomMotorAccelerationPublisher = elevatorLoggingNT.getDoubleTopic("Bottom Motor Acceleration (rots per s^2)").publish();
 
         // Setpoints from the motor profiling so we can log them.
         motionProfilingRotationSetpoint = Rotation.of(0);
@@ -177,8 +172,6 @@ public class Elevator extends SubsystemBase implements AutoCloseable {
         bottomMotorRotationPublisher.accept(bottomMotor.getPosition().getValue().in(Units.Rotations));
         topMotorVelocityPublisher.accept(topMotor.getVelocity().getValue().in(RotationsPerSecond));
         bottomMotorVelocityPublisher.accept(bottomMotor.getVelocity().getValue().in(RotationsPerSecond));
-        topMotorAccelerationPublisher.accept(topMotor.getAcceleration().getValue().in(RotationsPerSecondPerSecond));
-        bottomMotorAccelerationPublisher.accept(bottomMotor.getAcceleration().getValue().in(RotationsPerSecondPerSecond));
 
         motionProfilingRotationSetpointPublisher.accept(motionProfilingRotationSetpoint.in(Rotations));
         motionProfilingVelocitySetpointPublisher.accept(motionProfilingVelocitySetpoint.in(RotationsPerSecond));
@@ -252,11 +245,12 @@ public class Elevator extends SubsystemBase implements AutoCloseable {
             new SysIdRoutine.Config(
                 Volts.per(Seconds).of(0.5),
                 Volts.of(3),
-                Seconds.of(3)
+                Seconds.of(3),
+                (state) -> sysIDStatePublisher.accept(state.toString())
             ),
             new SysIdRoutine.Mechanism(
                 this::controlWithVoltage,
-                (state) -> sysIDStatePublisher.accept(state.toString()),
+                null,
                 this)
         );
 
