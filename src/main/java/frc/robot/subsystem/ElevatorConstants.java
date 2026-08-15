@@ -28,10 +28,10 @@ public class ElevatorConstants {
             .withKP(0)
             .withKI(0)
             .withKD(0)
-            .withKS(0)
+            .withKS(0.13978)
             .withKV(0)
             .withKA(0)
-            .withKG(0.3));
+            .withKG(0.20163));
 
     public static ElevatorSim constructElevatorSim() {
         return new ElevatorSim(
