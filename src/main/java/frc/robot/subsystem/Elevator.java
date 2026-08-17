@@ -21,7 +21,6 @@ import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import edu.wpi.first.wpilibj.smartdashboard.MechanismLigament2d;
 import edu.wpi.first.wpilibj.smartdashboard.MechanismRoot2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
-import edu.wpi.first.wpilibj.sysid.SysIdRoutineLog;
 import edu.wpi.first.wpilibj.util.Color;
 import edu.wpi.first.wpilibj.util.Color8Bit;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -197,20 +196,21 @@ public class Elevator extends SubsystemBase implements AutoCloseable {
         currentPositionSetpoint=elevatorMotorPosition;
 
         // The TrapezoidProfile.calculate is a little misleading with its "current" parameter, as it should be called "start" as it is the state of the system at the beginning (and set only once).
-        TrapezoidProfile.State startingState = new TrapezoidProfile.State();
+        TrapezoidProfile.State startingState = new TrapezoidProfile.State(topMotor.getPosition().getValue().in(Units.Rotations), topMotor.getVelocity().getValue().in(Units.RotationsPerSecond));
         TrapezoidProfile.State endingState = new TrapezoidProfile.State(elevatorMotorPosition.getAngleOfMotor().in(Units.Rotations), 0);
 
         // TODO: the "current" param should actually be updated with each loop
         //  We also dont need the "motionProfilingTimer", rather in ".calculate()" it should be 0.02 sec (as per cycle).
         return startRun(
-            () -> motionProfilingTimer.restart(),
+            motionProfilingTimer::restart,
+
             () -> {
                 startingState.position = topMotor.getPosition().getValue().in(Units.Rotations);
                 startingState.velocity = topMotor.getVelocity().getValue().in(Units.RotationsPerSecond);
 
                 // Units of calculatedPosRots will be in rotations.
                 TrapezoidProfile.State calculatedPosRots = motionProfile.calculate(
-                    MOTION_PROFILING_DELTA_TIME,
+                    motionProfilingTimer.get(),
                     startingState,
                     endingState);
 
@@ -219,6 +219,7 @@ public class Elevator extends SubsystemBase implements AutoCloseable {
 
                 // Default unit for .withPosition() and .withVelocity() is rotations.
                 topMotor.setControl(motorControlScheme.withPosition(calculatedPosRots.position).withVelocity(calculatedPosRots.velocity));
+//                topMotor.setControl(motorControlScheme.withPosition(calculatedPosRots.position));
             }
         ).until(() -> motionProfile.isFinished(motionProfilingTimer.get()));
     }
