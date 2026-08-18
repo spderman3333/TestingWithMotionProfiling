@@ -205,8 +205,8 @@ public class Elevator extends SubsystemBase implements AutoCloseable {
             motionProfilingTimer::restart,
 
             () -> {
-                startingState.position = topMotor.getPosition().getValue().in(Units.Rotations);
-                startingState.velocity = topMotor.getVelocity().getValue().in(Units.RotationsPerSecond);
+//                startingState.position = topMotor.getPosition().getValue().in(Units.Rotations);
+//                startingState.velocity = topMotor.getVelocity().getValue().in(Units.RotationsPerSecond);
 
                 // Units of calculatedPosRots will be in rotations.
                 TrapezoidProfile.State calculatedPosRots = motionProfile.calculate(
