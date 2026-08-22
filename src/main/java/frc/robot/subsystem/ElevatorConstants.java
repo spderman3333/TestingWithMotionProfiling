@@ -25,11 +25,11 @@ public class ElevatorConstants {
                 .withInverted(InvertedValue.Clockwise_Positive)
                 .withNeutralMode(NeutralModeValue.Brake))
         .withSlot0(new Slot0Configs()
-            .withKP(0)
+            .withKP(0.1)
             .withKI(0)
             .withKD(0)
             .withKS(0.13978)
-            .withKV(0)
+            .withKV(0.1)
             .withKA(0)
             .withKG(0.20163));
 

@@ -7,10 +7,7 @@ import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import com.ctre.phoenix6.sim.ChassisReference;
 import com.ctre.phoenix6.sim.TalonFXSimState;
 import edu.wpi.first.math.trajectory.TrapezoidProfile;
-import edu.wpi.first.networktables.DoublePublisher;
-import edu.wpi.first.networktables.NetworkTable;
-import edu.wpi.first.networktables.NetworkTableInstance;
-import edu.wpi.first.networktables.StringPublisher;
+import edu.wpi.first.networktables.*;
 import edu.wpi.first.units.Units;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.AngularVelocity;
@@ -48,6 +45,7 @@ public class Elevator extends SubsystemBase implements AutoCloseable {
     private final PositionVoltage motorControlScheme;
 
     private ElevatorMotorPosition currentPositionSetpoint;
+    private final DoublePublisher currentPositionSetpointPublisher;
 
     private final TrapezoidProfile motionProfile = new TrapezoidProfile(
         new TrapezoidProfile.Constraints(
@@ -69,6 +67,8 @@ public class Elevator extends SubsystemBase implements AutoCloseable {
 
     private final DoublePublisher motionProfilingRotationSetpointPublisher; // In Rotations
     private final DoublePublisher motionProfilingVelocitySetpointPublisher; // In RotationsPerSecond
+
+    private final BooleanPublisher isMotionProfilingRunningPublisher;
 
     private final StringPublisher sysIDStatePublisher;
 
@@ -102,6 +102,10 @@ public class Elevator extends SubsystemBase implements AutoCloseable {
 
         motionProfilingRotationSetpointPublisher = elevatorLoggingNT.getDoubleTopic("Motion Profiling Rotations (rots)").publish();
         motionProfilingVelocitySetpointPublisher = elevatorLoggingNT.getDoubleTopic("Motion Profiling Velocity (rots per sec)").publish();
+
+        currentPositionSetpointPublisher = elevatorLoggingNT.getDoubleTopic("Control Setpoint").publish();
+        isMotionProfilingRunningPublisher = elevatorLoggingNT.getBooleanTopic("Is Motion Profiling Running").publish();
+        isMotionProfilingRunningPublisher.accept(false);
 
         sysIDStatePublisher = elevatorLoggingNT.getStringTopic("SYS ID State").publish();
 
@@ -186,6 +190,8 @@ public class Elevator extends SubsystemBase implements AutoCloseable {
 
         motionProfilingRotationSetpointPublisher.accept(motionProfilingRotationSetpoint.in(Rotations));
         motionProfilingVelocitySetpointPublisher.accept(motionProfilingVelocitySetpoint.in(RotationsPerSecond));
+
+        currentPositionSetpointPublisher.accept(currentPositionSetpoint.getAngleOfMotor().in(Rotations));
     }
 
     /**
@@ -193,7 +199,12 @@ public class Elevator extends SubsystemBase implements AutoCloseable {
      * @param elevatorMotorPosition Position for the motor to move the carriage to.
      */
     public Command setMotorPosition(ElevatorMotorPosition elevatorMotorPosition) {
-        currentPositionSetpoint=elevatorMotorPosition;
+        /*
+         Code before the "return startRun" command is run once when the command is first constructed.
+         This method acts like a constructor, as the command is stored for further running.
+         We initialize the startingState and endingState only so we can update their values in the lambda later.
+         Variables that should change should be run in the "start" lambda of the startRun command.
+         */
 
         // The TrapezoidProfile.calculate is a little misleading with its "current" parameter, as it should be called "start" as it is the state of the system at the beginning (and set only once).
         TrapezoidProfile.State startingState = new TrapezoidProfile.State(topMotor.getPosition().getValue().in(Units.Rotations), topMotor.getVelocity().getValue().in(Units.RotationsPerSecond));
@@ -202,8 +213,17 @@ public class Elevator extends SubsystemBase implements AutoCloseable {
         // TODO: the "current" param should actually be updated with each loop
         //  We also dont need the "motionProfilingTimer", rather in ".calculate()" it should be 0.02 sec (as per cycle).
         return startRun(
-            motionProfilingTimer::restart,
+            () -> {
+                currentPositionSetpoint=elevatorMotorPosition;
+                motionProfilingTimer.restart();
 
+                // Setting the starting state.
+                startingState.position = topMotor.getPosition().getValue().in(Units.Rotations);
+                startingState.velocity = topMotor.getVelocity().getValue().in(Units.RotationsPerSecond);
+
+                endingState.position = elevatorMotorPosition.getAngleOfMotor().in(Units.Rotations);
+                isMotionProfilingRunningPublisher.accept(true);
+                },
             () -> {
 //                startingState.position = topMotor.getPosition().getValue().in(Units.Rotations);
 //                startingState.velocity = topMotor.getVelocity().getValue().in(Units.RotationsPerSecond);
@@ -221,7 +241,8 @@ public class Elevator extends SubsystemBase implements AutoCloseable {
                 topMotor.setControl(motorControlScheme.withPosition(calculatedPosRots.position).withVelocity(calculatedPosRots.velocity));
 //                topMotor.setControl(motorControlScheme.withPosition(calculatedPosRots.position));
             }
-        ).until(() -> motionProfile.isFinished(motionProfilingTimer.get()));
+        ).until(() -> motionProfile.isFinished(motionProfilingTimer.get())
+        ).finallyDo(() -> isMotionProfilingRunningPublisher.accept(false));
     }
 
     /**
